@@ -4,8 +4,7 @@
     :placeholder="placeholder"
     :field-names="fieldNames"
     :allow-clear="allowClear"
-  >
-  </a-select>
+  />
 </template>
 
 <script setup>

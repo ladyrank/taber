@@ -17,6 +17,7 @@
           v-for="each in state.search"
           :key="each.dataIndex"
           :field="each.dataIndex"
+          :style="{ width: '180px' }"
         >
           <template v-if="each.optionStore">
             <TaberSelect
@@ -26,8 +27,16 @@
               :option-store="each.optionStore || {}"
               :field-names="each.fieldNames"
               allow-clear
+              allow-search
             >
             </TaberSelect>
+          </template>
+          <template v-else-if="each.slot">
+            <component
+              :is="each.slot"
+              v-model="state.filters[each.dataIndex]"
+              :data="each"
+            ></component>
           </template>
           <template v-else>
             <component
@@ -39,6 +48,7 @@
               :min="each.min"
               :max="each.max"
               allow-clear
+              allow-search
             ></component>
           </template>
         </a-form-item>
@@ -102,6 +112,7 @@
         :data="state.result"
         :pagination="false"
         :bordered="{ cell: true }"
+        column-resizable
       >
         <template #columns>
           <a-table-column
@@ -109,6 +120,8 @@
             :key="each.dataIndex"
             :title="each.title"
             :data-index="each.dataIndex"
+            :width="each.width"
+            :fixed="each.fixed"
           >
             <template #cell="{ record, rowIndex }">
               <template v-if="each.slot">
@@ -133,7 +146,11 @@
           </a-table-column>
 
           <template v-if="state.operations.length">
-            <a-table-column title="操作">
+            <a-table-column
+              title="操作"
+              :width="cfg.operationsWidth"
+              fixed="right"
+            >
               <template #cell="{ record, rowIndex }">
                 <template v-for="item in state.operations" :key="item.name">
                   <a-button
@@ -181,7 +198,10 @@
         :current="state.filters.page"
         :page-size="state.filters.limit"
         show-page-size
+        show-total
+        show-jumper
         @change="JPaging"
+        @page-size-change="JPagingSize"
       />
     </div>
 
@@ -255,12 +275,26 @@
 
     loading.value = true;
 
+    // 多个字段的特殊处理
+    // @ts-ignore
+    // eslint-disable-next-line no-restricted-syntax
+    for (const p in state.filters) {
+      if (p && p.match(/,/gi)) {
+        const newKey = p.split(',') || [];
+        const newValue = (state.filters?.[p] || '').split(',');
+
+        newKey.forEach((keyItem, keyIdx) => {
+          state.filters[keyItem] = newValue[keyIdx];
+        });
+      }
+    }
+
     try {
       const params = Object.assign(state.filters, queryParam);
       const response = (await Utils.ajax(cfg.store, params)) || {};
 
       state.result = response.results || [];
-      state.paging = response.paging || {};
+      state.paging = response.page || {};
     } finally {
       loading.value = false;
     }
@@ -268,6 +302,11 @@
   // 翻页
   const JPaging = (e) => {
     state.filters.page = e;
+    query();
+  };
+  const JPagingSize = (e) => {
+    state.filters.page = 1;
+    state.filters.limit = e;
     query();
   };
   // 搜索
@@ -347,10 +386,12 @@
     margin: 10px 0 0;
     justify-content: end;
   }
+
   .taber-btn {
-    margin: 0 0 10px 0;
+    margin: 0 0 10px;
     text-align: right;
   }
+
   .taber-btn .arco-btn {
     margin-left: 10px;
   }
