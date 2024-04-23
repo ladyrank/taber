@@ -54,65 +54,74 @@
         </a-form-item>
 
         <a-form-item>
-          <a-button type="primary" @click="JSearch">
+          <a-button
+            class="mr10"
+            html-type="submit"
+            type="primary"
+            @click="JSearch"
+          >
             <template #icon> <icon-search /> </template>查询
+          </a-button>
+          <a-button class="mr10" @click="JReset">
+            <template #icon> <icon-eraser /> </template>重置
           </a-button>
         </a-form-item>
       </a-form>
     </div>
 
-    <div class="container-main">
-      <div class="action-btns">
-        <a-row
-          v-if="state.buttons.length || state.buttonsRight.length"
-          style="margin-bottom: 16px"
+    <div class="container-action-btns">
+      <a-row v-if="state.buttons.length || state.buttonsRight.length">
+        <a-col :span="12">
+          <a-space>
+            <a-button
+              v-for="each in state.buttons"
+              :key="each.name"
+              type="primary"
+              :status="each.class || ''"
+              @click="JTopClick(each)"
+            >
+              <template v-if="each.icon" #icon>
+                <component :is="'icon-' + each.icon"></component>
+              </template>
+              {{ each.name }}
+            </a-button>
+          </a-space>
+        </a-col>
+        <a-col
+          :span="12"
+          style="display: flex; align-items: center; justify-content: end"
         >
-          <a-col :span="12">
-            <a-space>
-              <a-button
-                v-for="each in state.buttons"
-                :key="each.name"
-                type="primary"
-                :status="each.class || ''"
-                @click="JTopClick(each)"
-              >
-                <template v-if="each.icon" #icon>
-                  <component :is="'icon-' + each.icon"></component>
-                </template>
-                {{ each.name }}
-              </a-button>
-            </a-space>
-          </a-col>
-          <a-col
-            :span="12"
-            style="display: flex; align-items: center; justify-content: end"
-          >
-            <a-space>
-              <a-button
-                v-for="each in state.buttonsRight"
-                :key="each.name"
-                :type="each.class ? 'primary' : 'secondary'"
-                :status="each.class || ''"
-                @click="JTopClick(each)"
-              >
-                <template v-if="each.icon" #icon>
-                  <component :is="'icon-' + each.icon"></component>
-                </template>
-                {{ each.name }}
-              </a-button>
-            </a-space>
-          </a-col>
-        </a-row>
-      </div>
+          <a-space>
+            <a-button
+              v-for="each in state.buttonsRight"
+              :key="each.name"
+              :type="each.class ? 'primary' : 'secondary'"
+              :status="each.class || ''"
+              @click="JTopClick(each)"
+            >
+              <template v-if="each.icon" #icon>
+                <component :is="'icon-' + each.icon"></component>
+              </template>
+              {{ each.name }}
+            </a-button>
+          </a-space>
+        </a-col>
+      </a-row>
+    </div>
 
+    <div class="container-main">
       <!-- 表格内容 -->
       <a-table
         :loading="loading"
         class="taber-list"
         :data="state.result"
-        :pagination="false"
+        :pagination="pagination"
         :bordered="{ cell: true }"
+        :sticky-header="true"
+        style="height: 100%"
         column-resizable
+        @page-change="JPaging"
+        @page-size-change="JPagingSize"
       >
         <template #columns>
           <a-table-column
@@ -130,9 +139,7 @@
 
               <template v-if="!each.slot">
                 <template v-if="each.renderHtml">
-                  <span
-                    v-html="Utils.xss(each.renderHtml(Utils.deepCopy(record)))"
-                  ></span>
+                  <span v-html="each.renderHtml(Utils.deepCopy(record))"></span>
                 </template>
                 <template v-else>
                   {{
@@ -153,7 +160,7 @@
             >
               <template #cell="{ record, rowIndex }">
                 <template v-for="item in state.operations" :key="item.name">
-                  <a-button
+                  <a-link
                     v-if="
                       item.xtype !== 'delete' &&
                       item.render &&
@@ -163,27 +170,23 @@
                     @click="JRowAct(item, record, rowIndex)"
                   >
                     <span
-                      v-html="
-                        Utils.xss(
-                          item.render(Utils.deepCopy(record), item.name)
-                        )
-                      "
+                      v-html="item.render(Utils.deepCopy(record), item.name)"
                     ></span
-                  ></a-button>
-                  <a-button
+                  ></a-link>
+                  <a-link
                     v-if="item.xtype !== 'delete' && !item.render"
                     type="text"
                     @click="JRowAct(item, record, rowIndex)"
-                    >{{ item.name }}</a-button
+                    >{{ item.name }}</a-link
                   >
                   <a-popconfirm
                     v-if="item.xtype === 'delete'"
                     content="确定删除吗?"
                     @ok="JConfirmDel(item, record)"
                   >
-                    <a-button type="text">
+                    <a-link type="text">
                       {{ item.name }}
-                    </a-button>
+                    </a-link>
                   </a-popconfirm>
                 </template>
               </template>
@@ -192,7 +195,7 @@
         </template>
       </a-table>
       <!-- 表格分页 -->
-      <a-pagination
+      <!-- <a-pagination
         class="taber-page"
         :total="state.paging.total || 0"
         :current="state.filters.page"
@@ -202,7 +205,7 @@
         show-jumper
         @change="JPaging"
         @page-size-change="JPagingSize"
-      />
+      /> -->
     </div>
 
     <!-- 表格新增或编辑弹窗 -->
@@ -259,6 +262,22 @@
     operations: cfg.operations || [],
   });
 
+  const pagination = computed(() => {
+    return {
+      total: state.paging.total || 0,
+      current: state.paging.page,
+      pageSize: state.paging.limit,
+      showTotal: true,
+      showJumper: true,
+      showPageSize: true,
+      pageSizeOptions: [20, 50, 100, 200, 300, 500],
+    };
+  });
+
+  onMounted(() => {
+    useTableHeight();
+  });
+
   // 初始化搜索配置项默认值
   const loopSearch = (list) => {
     list = list || [];
@@ -298,6 +317,8 @@
     } finally {
       loading.value = false;
     }
+
+    window.scrollTo(0, 0);
   };
   // 翻页
   const JPaging = (e) => {
@@ -317,6 +338,7 @@
   // 重置
   const JReset = () => {
     domFormSearch.value.resetFields();
+    JSearch();
   };
   // 表格顶部按钮点击
   const JTopClick = (row) => {
@@ -362,6 +384,7 @@
 
       const delRes = await Utils.ajax(action?.store, delParam);
 
+      query();
       // eslint-disable-next-line no-console
       console.log(delRes, 'delRes');
     } finally {

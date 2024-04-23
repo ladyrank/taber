@@ -90,6 +90,6 @@ export default {
     return str;
   },
   xss(str) {
-    return str;
+    return this.escapeStr(str);
   },
 };
