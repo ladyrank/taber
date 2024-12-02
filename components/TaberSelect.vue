@@ -1,48 +1,54 @@
 <template>
-  <a-select
-    :options="opts.data"
-    :placeholder="placeholder"
-    :field-names="fieldNames"
-    :allow-clear="allowClear"
-  />
+    <a-select
+        :options="opts.data"
+        :placeholder="placeholder"
+        :field-names="fieldNames"
+        :allow-clear="allowClear"
+        @change="JChange"
+    />
 </template>
 
 <script setup>
-  import Utils from '../utils/main';
+import Utils from '../utils/main';
 
-  const props = defineProps({
+const emits = defineEmits(['onChange']);
+
+const props = defineProps({
     placeholder: {
-      type: String,
-      default: '',
+        type: String,
+        default: '',
     },
     optionStore: {
-      type: Object,
-      default: () => {
-        return {};
-      },
+        type: Object,
+        default: () => {
+            return {};
+        },
     },
     fieldNames: {
-      type: Object,
-      default: () => {
-        return {};
-      },
+        type: Object,
+        default: () => {
+            return {};
+        },
     },
     allowClear: {
-      type: Boolean,
-      default: true,
+        type: Boolean,
+        default: true,
     },
-  });
-  const opts = reactive({
+});
+const opts = reactive({
     data: [],
-  });
-  const getOption = async () => {
+});
+const getOption = async () => {
     const tmpData = await Utils.ajax(props.optionStore);
 
     opts.data = tmpData?.results || tmpData || [];
-  };
+};
+const JChange = (v) => {
+    emits('onChange', v);
+};
 
-  getOption();
-  defineExpose({});
+getOption();
+defineExpose({});
 </script>
 
 <style scoped></style>

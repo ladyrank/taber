@@ -6,6 +6,18 @@
 // 表格总配置
 const config = {
   title: '列表数据查询',
+  emptyTip: '空数据时显示的提示',
+  // true 代表自动高度，不强制 100% 高。默认 false
+  // autoHeight: true,
+  rowKey: 'id',
+  rowSelection: {
+    // 行选择器的类型
+    type: 'checkbox',
+    // 是否显示全选选择器
+    showCheckedAll: true,
+    // 是否仅展示当前页的 keys（切换分页时清空 keys）
+    onlyCurrent: true,
+  },
   // 列表查询
   store: {
     url: 'http://localhost:5173/?action=query',
@@ -13,6 +25,9 @@ const config = {
     method: '',
     // jsonToFormData 或 jsonStringify
     dataFormat: ''
+  },
+  beforeSearch (v) {
+    return v;
   },
   // 搜索配置
   search: [
@@ -48,6 +63,23 @@ const config = {
        */
       optionStore: {
         url: '/api/admin/partner/list',
+      },
+      /**
+       * 2个字段关联搜索
+       */
+      refreshTarget(v) {
+        return 'id';
+      },
+      refreshOptions() {
+        return new Promise<void>((resolve, reject) => {
+          axios
+            .get(
+              `/api/admin/service-cat/second_list?parentId=${checkSearchParentId}`
+            )
+            .then((twoOpts: any) => {
+              resolve(twoOpts);
+            });
+        });
       },
     }
   ],
