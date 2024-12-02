@@ -1,23 +1,23 @@
 export default {
-    deepCopy(data) {
-        const typeCheck = (tmpData) => {
-            const typeObj = {
-                '[object String]': 'string',
-                '[object Number]': 'number',
-                '[object Boolean]': 'boolean',
-                '[object Object]': 'object',
-                '[object Null]': 'null',
-                '[object Undefined]': 'undefined',
-                '[object Symbol]': 'symbol',
-                '[object Function]': 'function',
-                '[object Date]': 'date',
-                '[object Array]': 'array',
-                '[object RegExp]': 'regexp',
-            };
-            const strKey = Object.prototype.toString.call(tmpData);
-            return typeObj[strKey];
+    typeCheck(tmpData) {
+        const typeObj = {
+            '[object String]': 'string',
+            '[object Number]': 'number',
+            '[object Boolean]': 'boolean',
+            '[object Object]': 'object',
+            '[object Null]': 'null',
+            '[object Undefined]': 'undefined',
+            '[object Symbol]': 'symbol',
+            '[object Function]': 'function',
+            '[object Date]': 'date',
+            '[object Array]': 'array',
+            '[object RegExp]': 'regexp',
         };
-        const typeKey = typeCheck(data);
+        const strKey = Object.prototype.toString.call(tmpData);
+        return typeObj[strKey];
+    },
+    deepCopy(data) {
+        const typeKey = this.typeCheck(data);
         const list = [];
         const obj = {};
         if (typeof data === 'object') {
